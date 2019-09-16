@@ -1,0 +1,6 @@
+<launch>
+    <arg name="ipfs_http_provider" default="https://ipfs.infura.io:5001" />
+    <node name="pinner" pkg="result_pinner" type="pinner_node" output="screen">
+        <param name="ipfs_http_provider" value="$(arg ipfs_http_provider)" />
+    </node>
+</launch>

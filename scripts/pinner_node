@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+import rospy
+
+from ipfsapi import connect
+from robonomics_msgs.msg import Result
+
+class PinnerNode:
+    def __init__(self):
+        rospy.loginfo("Launching pinner node...")
+        rospy.init_node("pinner")
+
+        ipfs_http_provider = rospy.get_param("~ipfs_http_provider")
+
+        if ipfs_http_provider == "":
+            ipfs_http_provider = rospy.get_param("/liability/infochan/ipfs_channel/ipfs_http_provider")
+
+        parts = ipfs_http_provider.split(':')
+        ipfs_addr = ':'.join(parts[:2])
+        ipfs_port = parts[2]
+
+        rospy.loginfo("{}:{}".format(ipfs_addr, ipfs_port))
+
+        self.ipfs_client = connect(ipfs_addr, int(ipfs_port))
+
+        rospy.Subscriber('/liability/infochan/incoming/result', Result, self.pin)
+
+        rospy.loginfo("The node is launched!")
+
+    def pin(self, result):
+        rospy.loginfo("Got result {}".format(result.result.multihash))
+
+        pins = self.ipfs_client.pin_add(result.result.multihash)
+
+        rospy.loginfo("Pinned {}".format(pins))
+
+    def spin(self):
+        rospy.spin()
+
+
+if __name__ == "__main__":
+    PinnerNode().spin()
+
