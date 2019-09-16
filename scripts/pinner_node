@@ -6,8 +6,8 @@ from robonomics_msgs.msg import Result
 
 class PinnerNode:
     def __init__(self):
-        rospy.loginfo("Launching pinner node...")
         rospy.init_node("pinner")
+        rospy.loginfo("Launching pinner node...")
 
         ipfs_http_provider = rospy.get_param("~ipfs_http_provider")
 
