@@ -47,11 +47,10 @@ class PinnerNode:
 
         url = f"https://api.temporal.cloud/v2/ipfs/public/pin/{mhash}"
         headers = {
-                "Content-Type": "multipart/form-data",
                 "Authorization": f"Bearer {self.auth}"
                 }
 
-        r = requests.post(url, files={"hold_time": 1}, headers=headers)
+        r = requests.post(url, data={"hold_time": 1}, headers=headers)
 
         rospy.loginfo(r.text)
         rospy.loginfo("Pinned")
