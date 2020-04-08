@@ -5,48 +5,56 @@ from ipfsapi import connect
 from robonomics_msgs.msg import Result
 from tempfile import NamedTemporaryFile, gettempdir
 import os
+import requests
+from datetime import datetime
+
 
 class PinnerNode:
     def __init__(self):
         rospy.init_node("pinner")
         rospy.loginfo("Launching pinner node...")
 
-        remote_ipfs_http_provider = rospy.get_param("~remote_ipfs_http_provider")
-        local_ipfs_http_provider = rospy.get_param("~local_ipfs_http_provider")
+        self.username = rospy.get_param("~temporal_user")
+        self.password = rospy.get_param("~temporal_password")
 
-        raddr, rport = self._extract_address_port(remote_ipfs_http_provider)
-        self.ipfs_remote = connect(raddr, int(rport))
-
-        laddr, lport = self._extract_address_port(local_ipfs_http_provider)
-        self.ipfs_local = connect(laddr, int(lport))
+        self.expire, self.auth = self.get_auth_token()
+        rospy.loginfo(f"Expire: {self.expire}\nToken: {self.auth}")
 
         rospy.Subscriber('/liability/infochan/incoming/result', Result, self.pin)
 
         rospy.loginfo("The node is launched!")
 
-    def _extract_address_port(self, address):
-        parts = address.split(':')
+    def get_auth_token(self) -> (datetime, str):
+        url = "https://api.temporal.cloud/v2/auth/login"
 
-        addr = ':'.join(parts[:2])
-        port = parts[2]
-        return (addr, port)
+        data = {
+                "username": self.username,
+                "password": self.password
+                }
+
+        r1 = requests.post(url, json=data)
+
+        resp = r1.json()
+
+        return (datetime.fromisoformat(resp["expire"][:-1]), resp["token"])
 
     def pin(self, result):
         mhash = result.result.multihash
         rospy.loginfo("Got result {}".format(mhash))
 
-        tempdir = gettempdir()
-        os.chdir(tempdir)
+        if datetime.now() > self.expire:
+            self.expire, self.auth = self.get_auth_token()
 
-        self.ipfs_local.get(mhash)
-        rospy.loginfo("Downloaded to local...")
+        url = f"https://api.temporal.cloud/v2/ipfs/public/pin/{mhash}"
+        headers = {
+                "Content-Type": "multipart/form-data",
+                "Authorization": f"Bearer {self.auth}"
+                }
 
-        self.ipfs_remote.add(mhash)
-        rospy.loginfo("Added to remote...")
+        r = requests.post(url, files={"hold_time": 1}, headers=headers)
 
-        pins = self.ipfs_remote.pin_add(result.result.multihash)
-
-        rospy.loginfo("Pinned {}".format(pins))
+        rospy.loginfo(r.text)
+        rospy.loginfo("Pinned")
 
     def spin(self):
         rospy.spin()

@@ -2,16 +2,17 @@
 , stdenv
 , mkRosPackage
 , robonomics_comm
+, python3Packages
 }:
 
 mkRosPackage rec {
   name = "${pname}-${version}";
   pname = "result_pinner";
-  version = "0.1.0";
+  version = "0.2.0";
 
   src = ./.;
 
-  propagatedBuildInputs = [ robonomics_comm ];
+  propagatedBuildInputs = [ robonomics_comm python3Packages.requests ];
 
   meta = with stdenv.lib; {
     description = "Helper service for pinning result files";
